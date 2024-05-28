@@ -10,8 +10,9 @@ import parser from "lambda-multipart-parser";
 import { v4 as uuidv4 } from "uuid";
 
 const REGION = "eu-west-3";
-const s3Client = new S3Client({ region: REGION });
 const BUCKET_NAME = "cloud-translator-app-bucket";
+
+const s3Client = new S3Client({ region: REGION });
 
 const getLanguageCode = (language) => {
   switch (language) {
