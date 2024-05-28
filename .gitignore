@@ -1,0 +1,14 @@
+# 
+*.txt
+
+# ignore all csv files
+*.csv
+
+# ingore all teh node_modules
+node_modules/
+
+# ignore all the .git files
+.git/
+
+# ignore zip files
+*.zip

@@ -8,21 +8,64 @@
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
       rel="stylesheet"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.0/lame.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+      }
+      h1 {
+        font-size: 2em;
+      }
+      button {
+        padding: 5px 10px;
+        font-size: 1em;
+      }
+      audio {
+        margin-top: 20px;
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
   </head>
   <body class="bg-gray-900 flex items-center justify-center min-h-screen">
     <div
       class="w-full max-w-md mx-auto p-6 bg-gray-800 rounded-lg shadow-lg text-center space-y-6"
     >
-      <div class="text-4xl font-bold text-gray-100">
-        Upload your files or record your voice
-      </div>
-      <form id="uploadForm" class="space-y-4" enctype="multipart/form-data">
-        <input
-          type="file"
-          name="file"
-          id="fileInput"
-          class="block w-full p-2 border border-gray-600 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      <h1 class="text-4xl font-bold text-gray-100">Record your voice</h1>
+      <form id="uploadForm" class="space-y-4">
+        <div>
+          <label for="inputLanguage" class="block text-gray-300"
+            >Input Language</label
+          >
+          <select
+            id="inputLanguage"
+            class="block w-full p-2 border border-gray-600 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="spanish">Spanish</option>
+            <option value="catalan">Catalan</option>
+            <option value="english">English</option>
+            <option value="french">French</option>
+            <option value="german">German</option>
+          </select>
+        </div>
+        <div>
+          <label for="outputLanguage" class="block text-gray-300"
+            >Output Language</label
+          >
+          <select
+            id="outputLanguage"
+            class="block w-full p-2 border border-gray-600 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="spanish">Spanish</option>
+            <option value="catalan">Catalan</option>
+            <option value="english">English</option>
+            <option value="french">French</option>
+            <option value="german">German</option>
+          </select>
+        </div>
         <button
           type="button"
           id="recordButton"
@@ -42,26 +85,25 @@
         >
           Submit
         </button>
+        <div id="loadingMessage" class="hidden text-blue-500">
+          Uploading, please wait...
+        </div>
       </form>
+      <div id="successMessage" class="hidden text-green-500">
+        File uploaded successfully!
+      </div>
+      <div id="errorMessage" class="hidden text-red-500">
+        File upload failed!
+      </div>
     </div>
 
     <script>
-      // Handle file input
-      document
-        .getElementById("fileInput")
-        .addEventListener("change", (event) => {
-          const file = event.target.files[0];
-          if (file) {
-            alert(`File selected: ${file.name}`);
-          }
-        });
-
-      // Handle audio recording
       let mediaRecorder;
       let chunks = [];
       const recordButton = document.getElementById("recordButton");
       const audioPlayback = document.getElementById("audioPlayback");
       const audioDataInput = document.getElementById("audioData");
+      const loadingMessage = document.getElementById("loadingMessage");
 
       recordButton.addEventListener("click", async () => {
         if (mediaRecorder && mediaRecorder.state === "recording") {
@@ -78,12 +120,11 @@
               chunks.push(e.data);
             };
 
-            mediaRecorder.onstop = () => {
-              const blob = new Blob(chunks, { type: "audio/ogg; codecs=opus" });
+            mediaRecorder.onstop = async () => {
+              const blob = new Blob(chunks, { type: "audio/webm" });
               chunks = [];
               audioPlayback.src = URL.createObjectURL(blob);
 
-              // Convert blob to base64 string
               const reader = new FileReader();
               reader.onloadend = () => {
                 audioDataInput.value = reader.result;
@@ -91,29 +132,81 @@
               reader.readAsDataURL(blob);
             };
           }
+          audioDataInput.value = "";
+          audioPlayback.src = "";
+
           mediaRecorder.start();
           recordButton.textContent = "Stop Recording";
         }
       });
 
-      // Handle form submission
       document
         .getElementById("uploadForm")
-        .addEventListener("submit", (event) => {
-          event.preventDefault(); // Prevent the form from submitting in the traditional way
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
           if (mediaRecorder && mediaRecorder.state === "recording") {
             mediaRecorder.stop();
           }
-          console.log("Form submitted successfully");
-          console.log(
-            "Selected file:",
-            document.getElementById("fileInput").files[0]
-          );
-          console.log(
-            "Recorded audio:",
-            document.getElementById("audioData").value
-          );
+
+          const formData = new FormData();
+          const audioDataInput = document.getElementById("audioData");
+          const inputLanguage = document.getElementById("inputLanguage").value;
+          const outputLanguage =
+            document.getElementById("outputLanguage").value;
+
+          if (audioDataInput.value) {
+            const audioBlob = dataURItoBlob(audioDataInput.value);
+            formData.append("file", audioBlob, "recording.webm");
+            formData.append("inputLanguage", inputLanguage);
+            formData.append("outputLanguage", outputLanguage);
+          } else {
+            alert("Please record an audio.");
+            return;
+          }
+
+          try {
+            loadingMessage.classList.remove("hidden");
+
+            const lambdaUrl =
+              "https://nytsm57p4ibg74pngto4otdqcm0tjpvv.lambda-url.eu-west-3.on.aws/";
+            const response = await fetch(lambdaUrl, {
+              method: "POST",
+              body: formData,
+            });
+
+            const result = await response.json();
+            console.log("Success:", result);
+            showMessage("success");
+          } catch (error) {
+            console.error("Error:", error);
+            showMessage("error");
+          } finally {
+            loadingMessage.classList.add("hidden");
+          }
         });
+
+      function dataURItoBlob(dataURI) {
+        const byteString = atob(dataURI.split(",")[1]);
+        const mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], { type: mimeString });
+      }
+
+      function showMessage(type) {
+        const successMessage = document.getElementById("successMessage");
+        const errorMessage = document.getElementById("errorMessage");
+        if (type === "success") {
+          successMessage.classList.remove("hidden");
+          errorMessage.classList.add("hidden");
+        } else {
+          successMessage.classList.add("hidden");
+          errorMessage.classList.remove("hidden");
+        }
+      }
     </script>
   </body>
 </html>

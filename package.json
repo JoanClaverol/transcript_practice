@@ -1,0 +1,16 @@
+{
+  "name": "uuid-identifier",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lambda-multipart-parser": "^1.0.1",
+    "uuid": "^9.0.1",
+    "uuidv4": "^6.2.13"
+  },
+  "description": ""
+}
