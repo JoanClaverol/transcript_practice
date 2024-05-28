@@ -80,7 +80,7 @@ Tot i les divergències inicials, s'han aplicat les solucions necessàries per a
 
 ## Diagrama de Flux
 
-![[diagram.png]]
+![](./diagram.png)
 
 ## Llibreries de Node.js Utilitzades
 
